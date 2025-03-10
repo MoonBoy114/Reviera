@@ -2,15 +2,19 @@ package com.example.reviera
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -37,25 +41,17 @@ import androidx.navigation.NavController
 import com.example.reviera.data.viewmodel.SpaViewModel
 
 
-data class ServiceItem(val iconRes: Int, val title: String, val route: String)
-
+data class MainCategory(
+    val title: String,
+    val description: String,
+    val imageRes: Int, // Ресурс полноцветного изображения
+    val subItems: List<String> // Список подэлементов
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRoute: String) {
     var showPromotion by remember { mutableStateOf(false) }
-    val services = listOf(
-        ServiceItem(R.drawable.ic_clean, "Клининг", "cleaning"),
-        ServiceItem(R.drawable.ic_tv, "ТВ", "tv"),
-        ServiceItem(R.drawable.ic_wifi, "Wi-Fi", "wifi"),
-        ServiceItem(R.drawable.ic_safe, "Сейф", "safe"),
-        ServiceItem(R.drawable.ic_food, "Ресторан", "restaurant"),
-        ServiceItem(R.drawable.ic_call, "Контакты", "contacts"),
-        ServiceItem(R.drawable.ic_spa, "SPA", "spa"),
-        ServiceItem(R.drawable.ic_menu, "Меню", "menu")
-    )
-
-    val promotions by viewModel.promotions.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
     var isSearchFocused by remember { mutableStateOf(false) }
     var selectedNavItem by remember { mutableStateOf(currentRoute) } // Синхронизация с текущим маршрутом
@@ -66,6 +62,39 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
         NavItem("Настройки", "settings", R.drawable.ic_settings)
     )
 
+    // Список категорий с полноцветными изображениями (сохранили "Сервис")
+    val categories = listOf(
+        MainCategory(
+            title = "Номера",
+            description = "Уютные номера для отдыха",
+            imageRes = R.drawable.ic_number, // Изображение номера
+            subItems = listOf("Номер 1", "Номер 2", "Номер 3")
+        ),
+        MainCategory(
+            title = "Отели",
+            description = "Для отеля",
+            imageRes = R.drawable.ic_hotel, // Изображение отеля
+            subItems = listOf("Отель 1", "Отель 2", "Отель 3")
+        ),
+        MainCategory(
+            title = "Рестораны",
+            description = "Услуги по уходу за собой",
+            imageRes = R.drawable.ic_restoraunt, // Изображение ресторана
+            subItems = listOf("Ресторан 1", "Ресторан 2", "Ресторан 3")
+        ),
+        MainCategory(
+            title = "Сервис",
+            description = "Эксклюзивные программы",
+            imageRes = R.drawable.ic_service, // Изображение сервиса
+            subItems = listOf("Сервис 1", "Сервис 2", "Сервис 3")
+        )
+    )
+
+    // Состояние для отслеживания раскрытия категорий
+    var expandedCategory by remember { mutableStateOf<String?>(null) }
+
+    val promotions by viewModel.promotions.collectAsState()
+
     LaunchedEffect(Unit) {
         showPromotion = true
         viewModel.loadPromotions()
@@ -75,20 +104,24 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
                             "Riviera Sunrise",
                             color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.headlineSmall
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.weight(1f)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         TextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
                             modifier = Modifier
-                                .width(200.dp) // Фиксированная ширина
+                                .width(200.dp)
                                 .height(48.dp)
-                                .clip(RoundedCornerShape(24.dp)) // Закругленные углы
+                                .clip(RoundedCornerShape(24.dp))
                                 .onFocusChanged { isSearchFocused = it.isFocused },
                             placeholder = {
                                 Text(
@@ -130,14 +163,15 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
             )
         },
         bottomBar = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(80.dp) // Общая высота для выступающего круга
+                    .height(80.dp)
+                    .background(Color.DarkGray)
             ) {
                 // Оранжевая полоса
                 Box(
@@ -178,9 +212,9 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
                                 if (selected && isCenterItem) {
                                     Card(
                                         modifier = Modifier
-                                            .size(64.dp) // Увеличенный размер
+                                            .size(64.dp)
                                             .align(Alignment.Center)
-                                            .offset(y = (-16).dp, x = 35.dp) // Выступает над полосой
+                                            .offset(y = (-16).dp, x = 30.dp)
                                             .shadow(8.dp, CircleShape),
                                         shape = CircleShape,
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary),
@@ -213,19 +247,23 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
                                         verticalArrangement = Arrangement.Center,
                                         modifier = Modifier
                                             .size(64.dp)
-                                            .offset(y = 14.dp, x = 35.dp) // Сдвигаем неактивные иконки вниз
+                                            .offset(y = 14.dp, x = 30.dp)
                                             .padding(4.dp)
                                     ) {
                                         Icon(
                                             painter = painterResource(id = navItem.iconRes),
                                             contentDescription = navItem.title,
-                                            tint = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                            tint = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary.copy(
+                                                alpha = 0.6f
+                                            ),
                                             modifier = Modifier.size(24.dp)
                                         )
                                         Text(
                                             navItem.title,
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+                                            color = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onPrimary.copy(
+                                                alpha = 0.6f
+                                            ),
                                             textAlign = TextAlign.Center,
                                             maxLines = 1,
                                             fontSize = 10.sp
@@ -237,132 +275,89 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
                     }
                 }
             }
-        }
+        },
+        containerColor = Color.DarkGray // Темный фон экрана
     ) { innerPadding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
         ) {
-            // Баннер
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.family_image),
-                    contentDescription = "Family Image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
-                        .padding(8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_disco),
-                        contentDescription = "Disco",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Акция
-            AnimatedVisibility(
-                visible = showPromotion && promotions.isNotEmpty(),
-                enter = fadeIn(animationSpec = tween(durationMillis = 1000)),
-                exit = fadeOut(animationSpec = tween(durationMillis = 1000))
-            ) {
+            items(categories) { category ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .clip(RoundedCornerShape(12.dp)),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                        .aspectRatio(1f) // Фиксированное соотношение сторон 1:1 для квадратных карточек
+                        .clickable {
+                            expandedCategory = if (expandedCategory == category.title) null else category.title
+                        },
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
+                            .fillMaxSize()
                             .padding(16.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column {
-                            Text(
-                                promotions.firstOrNull()?.title ?: "Продлите свой отдых со скидкой 15%",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSecondary
-                            )
-                            Text(
-                                "Ограничено по времени",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.7f)
-                            )
-                        }
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_hand),
-                            contentDescription = "Hand Icon",
-                            tint = MaterialTheme.colorScheme.onSecondary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Список услуг
-            Text(
-                "Виртуальный помощник в номерах",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(services) { item ->
-                    Card(
-                        modifier = Modifier
-                            .clickable { navController.navigate(item.route) }
-                            .aspectRatio(1f),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
+                        // Полноцветное изображение (остается на месте)
+                        Image(
+                            painter = painterResource(id = category.imageRes),
+                            contentDescription = category.title,
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
+                                .fillMaxWidth()
+                                .weight(1f) // Изображение занимает большую часть карточки
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // Название с черным цветом текста
+                        Text(
+                            category.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Black, // Черный текст
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Раскрывающийся список с более плавной анимацией (без исчезновения изображения)
+                        AnimatedVisibility(
+                            visible = expandedCategory == category.title,
+                            enter = expandVertically(
+                                animationSpec = tween(durationMillis = 600)
+                            ),
+                            exit = shrinkVertically(
+                                animationSpec = tween(durationMillis = 600)
+                            )
                         ) {
-                            Icon(
-                                painter = painterResource(id = item.iconRes),
-                                contentDescription = item.title,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                item.title,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color.White)
+                                    .padding(16.dp)
+                            ) {
+                                category.subItems.forEach { subItem ->
+                                    Text(
+                                        subItem,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.Black, // Черный текст
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp)
+                                            .clickable { /* Действие при нажатии на подэлемент */ }
+                                    )
+                                    Divider(color = Color.Black.copy(alpha = 0.2f))
+                                }
+                            }
                         }
                     }
                 }
@@ -370,6 +365,10 @@ fun HomeScreen(navController: NavController, viewModel: SpaViewModel, currentRou
         }
     }
 }
+
+
+
+
 
 
 
